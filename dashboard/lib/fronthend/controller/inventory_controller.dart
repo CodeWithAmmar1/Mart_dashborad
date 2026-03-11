@@ -30,7 +30,7 @@ Future<void> sellItem(String name, int qty) async {
   if (res.statusCode == 200) {
     // This triggers the Obx in your UI to refresh automatically
     await fetchItems(); 
-    Get.snackbar("Success", "Sale confirmed!", backgroundColor: Colors.green);
+    Get.snackbar("Success", "$name sold successfully!", backgroundColor: Colors.green);
   } else {
     Get.snackbar("Error", "Insufficient Stock", backgroundColor: Colors.red);
   }
