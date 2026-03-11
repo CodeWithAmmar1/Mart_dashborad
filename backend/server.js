@@ -7,9 +7,9 @@ app.use(cors());
 app.use(express.json());
 
 // 1. Connect to MongoDB
-mongoose.connect('mongodb+srv://aliammar0342:aliammar0342@backhand.bl5s3.mongodb.net/?appName=backhand')
-  .then(() => console.log('Connected to Database'))
-  .catch(err => console.error(err));
+mongoose.connect('mongodb+srv://aliammar0342:aliammar0342@backhand.bl5s3.mongodb.net/mart?appName=backhand')
+    .then(() => console.log('Connected to Database'))
+    .catch(err => console.error(err));
 const itemSchema = new mongoose.Schema({
     name: { type: String, unique: true, required: true },
     price: Number,
@@ -35,34 +35,27 @@ app.post('/api/items/add', async (req, res) => {
 
 // 3. Sell Item (Decrease Logic)
 // Add this helper schema for history
-const sellSchema = new mongoose.Schema({
-    name: String,
-    quantity: Number,
+const SaleSchema = new mongoose.Schema({
+    itemName: String,
+    amount: Number,
     date: { type: Date, default: Date.now }
 });
-const SellHistory = mongoose.model('SellHistory', sellSchema);
+const Sale = mongoose.model('Sale', SaleSchema);
 
-// Update Sell Logic
 app.post('/api/items/sell', async (req, res) => {
     const { name, quantity } = req.body;
     try {
-        // 1. Find and update the inventory item
         const item = await Item.findOne({ name: name.toLowerCase() });
-        
-        if (!item || item.stock < quantity) {
-            return res.status(400).json({ message: "Out of Stock" });
-        }
+        if (!item || item.stock < quantity) return res.status(400).send("No Stock");
 
         item.stock -= quantity;
         await item.save();
 
-        // 2. Save the transaction to history
-        await SellHistory.create({ name: name.toLowerCase(), quantity: quantity });
+        // Save to sales history
+        await Sale.create({ itemName: name, amount: item.price * quantity });
 
         res.status(200).json(item);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json(err); }
 });
 // Add this to your server.js
 app.get('/api/items', async (req, res) => {
@@ -72,5 +65,12 @@ app.get('/api/items', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Add this in your Node.js backend
+app.post('/api/items/delete', async (req, res) => {
+  const { name } = req.body;
+  await Item.deleteOne({ name: name }); // Assuming you use Mongoose
+  res.status(200).send("Deleted");
 });
 app.listen(3000, () => console.log("Server running on port 3000"));
