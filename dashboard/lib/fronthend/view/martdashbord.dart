@@ -1,18 +1,50 @@
 import 'package:dashboard/fronthend/controller/inventory_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Required for Hardware Keyboard events
 import 'package:get/get.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-class MartDashboard extends StatelessWidget {
-  MartDashboard({super.key});
+class MartDashboard extends StatefulWidget {
+  // Changed to StatefulWidget to manage TabController
+  const MartDashboard({super.key});
+
+  @override
+  State<MartDashboard> createState() => _MartDashboardState();
+}
+
+class _MartDashboardState extends State<MartDashboard>
+    with SingleTickerProviderStateMixin {
   final controller = Get.put(InventoryController());
+  late TabController _tabController;
+  final FocusNode _scannerFocusNode = FocusNode();
+  String _barcodeBuffer = "";
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize TabController to track which tab we are on
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
+    return KeyboardListener(
+      focusNode: _scannerFocusNode,
+      autofocus: true,
+      onKeyEvent: (KeyEvent event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.enter) {
+            if (_barcodeBuffer.isNotEmpty) {
+              _handleScannerInput(_barcodeBuffer.trim());
+              _barcodeBuffer = "";
+            }
+          } else if (event.character != null) {
+            _barcodeBuffer += event.character!;
+          }
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFFFFD700),
@@ -20,15 +52,29 @@ class MartDashboard extends StatelessWidget {
             "CYBER MART",
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
-          bottom: const TabBar(
+          bottom: TabBar(
+            controller: _tabController, // Attach controller
             labelColor: Colors.black,
             indicatorColor: Colors.black,
-            tabs: [Tab(text: "INVENTORY"), Tab(text: "SALES")],
+            tabs: const [Tab(text: "INVENTORY"), Tab(text: "SALES")],
           ),
         ),
-        body: TabBarView(children: [_inventoryList(), _salesList()]),
+        body: TabBarView(
+          controller: _tabController, // Attach controller
+          children: [_inventoryList(), _salesList()],
+        ),
       ),
     );
+  }
+
+  void _handleScannerInput(String data) {
+    if (_tabController.index == 0) {
+      // TAB 1: INVENTORY - Open Dialog to add/update stock
+      _showAddItemDialog(scannedName: data);
+    } else {
+      // TAB 2: SALES - Directly push to the sales list
+      controller.addItemByName(data);
+    }
   }
 
   // --- TAB 1: INVENTORY ---
@@ -57,41 +103,116 @@ class MartDashboard extends StatelessWidget {
       child: const Icon(Icons.add, color: Colors.black),
     ),
   );
-  void _showAddItemDialog() {
-    final name = TextEditingController();
+
+  void _showAddItemDialog({String? scannedName}) {
+    final name = TextEditingController(text: scannedName ?? "");
     final price = TextEditingController();
     final stock = TextEditingController();
 
     Get.defaultDialog(
-      title: "ADD NEW ITEM",
+      backgroundColor: Colors.black, // Match Invoice Theme
+      title: scannedName != null ? "NEW INVENTORY ITEM" : "ADD NEW ITEM",
+      titleStyle: const TextStyle(
+        color: Color(0xFFFFD700),
+        fontWeight: FontWeight.bold,
+      ),
       content: Column(
         children: [
+          const Divider(color: Colors.amber, thickness: 0.5),
+          const SizedBox(height: 10),
+
+          // Item Name Field
           TextField(
             controller: name,
-            decoration: const InputDecoration(labelText: "Item Name"),
+            readOnly: scannedName != null,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: "Item Name / Barcode",
+              labelStyle: const TextStyle(color: Colors.amber),
+              enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.amber),
+              ),
+            ),
           ),
+          const SizedBox(height: 15),
+
+          // Price Field
           TextField(
             controller: price,
-            decoration: const InputDecoration(labelText: "Price"),
+            autofocus: scannedName != null,
+            style: const TextStyle(color: Colors.white),
             keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Set Price (\$)",
+              labelStyle: TextStyle(color: Colors.amber),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.amber),
+              ),
+            ),
           ),
+          const SizedBox(height: 15),
+
+          // Stock Field
           TextField(
             controller: stock,
-            decoration: const InputDecoration(labelText: "Stock"),
+            style: const TextStyle(color: Colors.white),
             keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Initial Stock Quantity",
+              labelStyle: TextStyle(color: Colors.amber),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.amber),
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 30),
+
+          // Save Button
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD700),
+              minimumSize: const Size(double.infinity, 45),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             onPressed: () {
-              // Ensure you have this 'addNewItem' method in your InventoryController
-              controller.addNewItem(
-                name.text,
-                double.parse(price.text),
-                int.parse(stock.text),
-              );
-              Get.back();
+              if (name.text.isNotEmpty &&
+                  price.text.isNotEmpty &&
+                  stock.text.isNotEmpty) {
+                controller.addNewItem(
+                  name.text,
+                  double.parse(price.text),
+                  int.parse(stock.text),
+                );
+                Get.back();
+                _scannerFocusNode.requestFocus();
+              } else {
+                Get.snackbar(
+                  "Error",
+                  "Please fill all fields",
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
             },
-            child: const Text("SAVE TO DATABASE"),
+            child: const Text(
+              "SAVE TO DATABASE",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -106,7 +227,7 @@ class MartDashboard extends StatelessWidget {
           controller.currentSale.isEmpty
               ? const Center(
                 child: Text(
-                  "Ready to Scan / Enter Name",
+                  "Ready to Scan Items...",
                   style: TextStyle(color: Colors.white),
                 ),
               )
@@ -134,73 +255,27 @@ class MartDashboard extends StatelessWidget {
                 },
               ),
     ),
-    floatingActionButton: Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        FloatingActionButton(
-          heroTag: "add",
-          backgroundColor: Colors.white,
-          onPressed: () => _showQuickAddDialog(),
-          child: const Icon(Icons.search, color: Colors.black),
-        ),
-        const SizedBox(height: 10),
-        Obx(
-          () =>
-              controller.currentSale.isNotEmpty
-                  ? FloatingActionButton.extended(
-                    heroTag: "gen",
-                    backgroundColor: const Color(0xFFFFD700),
-                    onPressed: () => _showInvoiceDialog(),
-                    label: const Text(
-                      "GENERATE INVOICE",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                    icon: const Icon(Icons.receipt, color: Colors.black),
-                  )
-                  : const SizedBox(),
-        ),
-      ],
+    floatingActionButton: Obx(
+      () =>
+          controller.currentSale.isNotEmpty
+              ? FloatingActionButton.extended(
+                backgroundColor: const Color(0xFFFFD700),
+                onPressed: () => _showInvoiceDialog(),
+                label: const Text(
+                  "GENERATE INVOICE",
+                  style: TextStyle(color: Colors.black),
+                ),
+                icon: const Icon(Icons.receipt, color: Colors.black),
+              )
+              : const SizedBox(),
     ),
   );
-
-  void _showQuickAddDialog() {
-    final nameController = TextEditingController();
-    Get.defaultDialog(
-      backgroundColor: Colors.grey[900],
-      title: "QUICK ADD",
-      titleStyle: const TextStyle(color: Color(0xFFFFD700)),
-      content: TextField(
-        controller: nameController,
-        autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: "Enter Item Name",
-          labelStyle: TextStyle(color: Colors.amber),
-        ),
-        onSubmitted: (val) {
-          controller.addItemByName(val);
-          Get.back();
-        },
-      ),
-      confirm: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFFD700),
-        ),
-        onPressed: () {
-          controller.addItemByName(nameController.text);
-          Get.back();
-        },
-        child: const Text("OK", style: TextStyle(color: Colors.black)),
-      ),
-    );
-  }
-
+  // --- Invoice & PDF logic remains the same ---
   void _showInvoiceDialog() {
     double total = controller.currentSale.fold(
       0,
       (sum, item) => sum + (item['price'] * item['qty']),
     );
-
     Get.defaultDialog(
       backgroundColor: Colors.black,
       title: "PRINT INVOICE",
@@ -240,91 +315,74 @@ class MartDashboard extends StatelessWidget {
   Future<void> _generatePdfAndSave(double total) async {
     try {
       final pdf = pw.Document();
-      // Using a standard font to avoid Unicode "Boxes" errors
       final font = await PdfGoogleFonts.nunitoExtraLight();
-
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Text(
-                    "CYBER MART",
-                    style: pw.TextStyle(
-                      font: font,
-                      fontSize: 18,
-                      fontWeight: pw.FontWeight.bold,
+          build:
+              (pw.Context context) => pw.Column(
+                children: [
+                  pw.Center(
+                    child: pw.Text(
+                      "CYBER MART",
+                      style: pw.TextStyle(
+                        font: font,
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                pw.Divider(),
-                ...controller.currentSale
-                    .map(
-                      (item) => pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text(
-                            "${item['name']} x${item['qty']}",
-                            style: pw.TextStyle(font: font),
-                          ),
-                          pw.Text(
-                            "${(item['price'] * item['qty']).toStringAsFixed(2)}",
-                            style: pw.TextStyle(font: font),
-                          ),
-                        ],
-                      ),
-                    )
-                    .toList(),
-                pw.Divider(),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      "TOTAL",
-                      style: pw.TextStyle(
-                        font: font,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                  pw.Divider(),
+                  ...controller.currentSale.map(
+                    (item) => pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          "${item['name']} x${item['qty']}",
+                          style: pw.TextStyle(font: font),
+                        ),
+                        pw.Text(
+                          "${(item['price'] * item['qty']).toStringAsFixed(2)}",
+                          style: pw.TextStyle(font: font),
+                        ),
+                      ],
                     ),
-                    pw.Text(
-                      total.toStringAsFixed(2),
-                      style: pw.TextStyle(
-                        font: font,
-                        fontWeight: pw.FontWeight.bold,
+                  ),
+                  pw.Divider(),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        "TOTAL",
+                        style: pw.TextStyle(
+                          font: font,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
+                      pw.Text(
+                        total.toStringAsFixed(2),
+                        style: pw.TextStyle(
+                          font: font,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
         ),
       );
-
       final bytes = await pdf.save();
-
-      // Opens native print dialog for PDF saving/printing
       await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => bytes,
+        onLayout: (format) async => bytes,
         name: 'Invoice_${DateTime.now().millisecondsSinceEpoch}',
       );
-
-      // Only proceed to clear database/UI if printing didn't fail
       await controller.confirmSaleInDB();
       controller.clearSale();
-
       if (Get.isDialogOpen!) Get.back();
-      Get.snackbar(
-        "Success",
-        "Stock Updated & List Cleared",
-        backgroundColor: Colors.white,
-      );
+      _scannerFocusNode.requestFocus();
     } catch (e) {
       debugPrint("PDF Error: $e");
-      Get.snackbar("Error", "Restart the app to link Printer services.");
     }
   }
 
