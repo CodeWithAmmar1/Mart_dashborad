@@ -69,8 +69,8 @@ app.get('/api/items', async (req, res) => {
 
 // Add this in your Node.js backend
 app.post('/api/items/delete', async (req, res) => {
-  const { name } = req.body;
-  await Item.deleteOne({ name: name }); // Assuming you use Mongoose
-  res.status(200).send("Deleted");
+    const { name } = req.body;
+    await Item.deleteOne({ name: name }); // Assuming you use Mongoose
+    res.status(200).send("Deleted");
 });
 app.listen(3000, () => console.log("Server running on port 3000"));
