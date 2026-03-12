@@ -35,8 +35,12 @@ class InventoryController extends GetxController {
 
     if (res.statusCode == 200) {
       fetchItems();
-      Get.snackbar("Success", "Item added to inventory", 
-          backgroundColor: Colors.green.withOpacity(0.7), colorText: Colors.white);
+      Get.snackbar(
+        "Success",
+        "Item added to inventory",
+        backgroundColor: Colors.green.withOpacity(0.7),
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -51,7 +55,11 @@ class InventoryController extends GetxController {
 
       if (res.statusCode == 200) {
         await fetchItems();
-        Get.snackbar("Deleted", "$name removed", backgroundColor: Colors.orange);
+        Get.snackbar(
+          "Deleted",
+          "$name removed",
+          backgroundColor: Colors.orange,
+        );
       }
     } catch (e) {
       Get.snackbar("Error", "Server error: $e", backgroundColor: Colors.red);
@@ -66,19 +74,28 @@ class InventoryController extends GetxController {
     var dbItem = itemList.firstWhere(
       (element) =>
           element['name'].toString().toLowerCase() == query.toLowerCase() ||
-          (element['barcode'] != null && element['barcode'].toString() == query),
+          (element['barcode'] != null &&
+              element['barcode'].toString() == query),
       orElse: () => null,
     );
 
     if (dbItem == null) {
-      Get.snackbar("Not Found", "Item '$query' not in Inventory",
-          backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Not Found",
+        "Item '$query' not in Inventory",
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
     // 2. Check current sale list
-    int index = currentSale.indexWhere((item) => 
-        item['name'].toString().toLowerCase() == dbItem['name'].toString().toLowerCase());
+    int index = currentSale.indexWhere(
+      (item) =>
+          item['name'].toString().toLowerCase() ==
+          dbItem['name'].toString().toLowerCase(),
+    );
 
     if (index != -1) {
       // Increase qty if stock allows
@@ -86,8 +103,11 @@ class InventoryController extends GetxController {
         currentSale[index]['qty'] += 1;
         currentSale.refresh();
       } else {
-        Get.snackbar("Stock Limit", "No more ${dbItem['name']} in stock", 
-            backgroundColor: Colors.amber);
+        Get.snackbar(
+          "Stock Limit",
+          "No more ${dbItem['name']} in stock",
+          backgroundColor: Colors.amber,
+        );
       }
     } else {
       // Add as new entry
@@ -108,11 +128,16 @@ class InventoryController extends GetxController {
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({"name": item['name'], "quantity": item['qty']}),
         );
-        if (res.statusCode != 200) throw Exception("Failed to update ${item['name']}");
+        if (res.statusCode != 200)
+          throw Exception("Failed to update ${item['name']}");
       }
-      await fetchItems(); 
+      await fetchItems();
     } catch (e) {
-      Get.snackbar("Error", "Stock update failed: $e", backgroundColor: Colors.red);
+      Get.snackbar(
+        "Error",
+        "Stock update failed: $e",
+        backgroundColor: Colors.red,
+      );
     }
   }
 
