@@ -19,7 +19,7 @@ WORKDIR /home/flutteruser/app
 COPY --chown=flutteruser:flutteruser . .
 
 # Build the web app
-RUN flutter config --enable-web
+RUN flutter build web --release
 RUN flutter pub get
 # Simplified command - the renderer is handled automatically
 RUN flutter build web --release
