@@ -6,20 +6,20 @@ RUN apt-get update && apt-get install -y \
     curl git wget unzip xz-utils libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Flutter SDK
+# Install Flutter SDK and switch to stable
 RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
 ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
+RUN flutter channel stable
+RUN flutter upgrade
 
-# Set working directory
+# Copy your app files
 COPY . /app
 WORKDIR /app
 
-WORKDIR /app
-COPY . .
-
-# Ensure dependencies are installed and build
+# Build the web app
+RUN flutter config --enable-web
 RUN flutter pub get
-# Use this simplified command to avoid renderer flag errors
+# Using the simplified build command
 RUN flutter build web --release
 
 # Stage 2: Serve the app using Nginx
