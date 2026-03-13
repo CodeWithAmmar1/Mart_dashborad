@@ -18,7 +18,8 @@ ENV PATH="/home/flutteruser/flutter/bin:/home/flutteruser/flutter/bin/cache/dart
 WORKDIR /home/flutteruser/app
 COPY --chown=flutteruser:flutteruser . .
 
-# Get dependencies BEFORE building
+# Clean and get dependencies
+RUN flutter clean
 RUN flutter pub get
 
 # Build the web app
