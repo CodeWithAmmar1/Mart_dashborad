@@ -14,9 +14,13 @@ ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PAT
 COPY . /app
 WORKDIR /app
 
-# Build the web app
-RUN flutter config --enable-web
-RUN flutter build web --release --web-renderer canvaskit
+WORKDIR /app
+COPY . .
+
+# Ensure dependencies are installed and build
+RUN flutter pub get
+# Use this simplified command to avoid renderer flag errors
+RUN flutter build web --release
 
 # Stage 2: Serve the app using Nginx
 FROM nginx:alpine
