@@ -3,8 +3,8 @@ FROM debian:latest AS build-env
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-    curl git wget unzip xz-utils libglu1-mesa \
-    && rm -rf /var/lib/apt/lists/*
+ curl git wget unzip xz-utils libglu1-mesa \
+ && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user to avoid permission warnings
 RUN useradd -ms /bin/bash flutteruser
@@ -18,10 +18,10 @@ ENV PATH="/home/flutteruser/flutter/bin:/home/flutteruser/flutter/bin/cache/dart
 WORKDIR /home/flutteruser/app
 COPY --chown=flutteruser:flutteruser . .
 
-# Build the web app
-RUN flutter build web --release
+# Get dependencies BEFORE building
 RUN flutter pub get
-# Simplified command - the renderer is handled automatically
+
+# Build the web app
 RUN flutter build web --release
 
 # Stage 2: Serve the app using Nginx
