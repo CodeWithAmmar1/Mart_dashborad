@@ -6,7 +6,7 @@ import 'dart:convert';
 class InventoryController extends GetxController {
   var itemList = <dynamic>[].obs; // Database items
   var currentSale = <dynamic>[].obs; // Current invoice items
-  final String url = "martdashborad-production.up.railway.app";
+  final String url = "https://martdashborad-production.up.railway.app/api/items";
 
   @override
   void onInit() {

@@ -83,7 +83,20 @@ require('dotenv').config(); // Load variables from Railway
 const app = express();
 app.use(cors());
 app.use(express.json());
+const cors = require('cors');
 
+// Define your specific frontend URL to be secure
+const corsOptions = {
+  origin: 'https://your-frontend-url.railway.app', // Replace with your ACTUAL deployed frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
+// Explicitly handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 // 1. Updated Connection (Uses Railway Variables)
 const mongoURI = process.env.MONGO_URL || 'mongodb+srv://aliammar0342:aliammar0342@backhand.bl5s3.mongodb.net/mart?appName=backhand';
 
