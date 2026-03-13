@@ -16,16 +16,25 @@ final String url = "https://martdashborad-production.up.railway.app/api/items";
     super.onInit();
   }
 
-  Future<void> fetchItems() async {
-    try {
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode == 200) {
-        itemList.value = jsonDecode(res.body);
-      }
-    } catch (e) {
-      debugPrint("Fetch Error: $e");
+Future<void> fetchItems() async {
+  try {
+    final res = await http.get(
+      Uri.parse(url),
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+    );
+    
+    if (res.statusCode == 200) {
+      itemList.value = jsonDecode(res.body);
+    } else {
+      debugPrint("Status Code: ${res.statusCode}");
     }
+  } catch (e) {
+    debugPrint("Full Error: $e");
   }
+}
 
   // --- ADD TO INVENTORY ---
   Future<void> addNewItem(String name, double price, int stock) async {
