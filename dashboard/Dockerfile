@@ -6,24 +6,26 @@ RUN apt-get update && apt-get install -y \
     curl git wget unzip xz-utils libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Flutter SDK and switch to stable
-RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
-ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
-RUN flutter channel stable
-RUN flutter upgrade
+# Create a non-root user to avoid permission warnings
+RUN useradd -ms /bin/bash flutteruser
+USER flutteruser
 
-# Copy your app files
-COPY . /app
-WORKDIR /app
+# Install Flutter SDK
+RUN git clone https://github.com/flutter/flutter.git /home/flutteruser/flutter
+ENV PATH="/home/flutteruser/flutter/bin:/home/flutteruser/flutter/bin/cache/dart-sdk/bin:${PATH}"
+
+# Set working directory
+WORKDIR /home/flutteruser/app
+COPY --chown=flutteruser:flutteruser . .
 
 # Build the web app
 RUN flutter config --enable-web
 RUN flutter pub get
-# Using the simplified build command
+# Simplified command - the renderer is handled automatically
 RUN flutter build web --release
 
 # Stage 2: Serve the app using Nginx
 FROM nginx:alpine
-COPY --from=build-env /app/build/web /usr/share/nginx/html
+COPY --from=build-env /home/flutteruser/app/build/web /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
