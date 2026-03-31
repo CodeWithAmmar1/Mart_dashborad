@@ -59,9 +59,53 @@ class _MartDashboardState extends State<MartDashboard>
             tabs: const [Tab(text: "INVENTORY"), Tab(text: "SALES")],
           ),
         ),
-        body: TabBarView(
-          controller: _tabController, // Attach controller
-          children: [_inventoryList(), _salesList()],
+        body: Column(
+          children: [
+            Expanded(
+              child: TabBarView(
+                controller: _tabController, // Attach controller
+                children: [_inventoryList(), _salesList()],
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade300, width: 0.5),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    "© 2026 | Mart Dashboard", // Branding
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Developed with by ",
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        "Ali Ammar",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey.shade800,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
